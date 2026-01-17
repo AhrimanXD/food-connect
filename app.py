@@ -1,7 +1,7 @@
-from flask import Flask
+from flask import Flask, render_template, request, redirect, url_for
 from config import settings
-from models import db
-
+from models import db, Offer
+from datetime import datetime, timedelta
 
 app = Flask(__name__)
 
@@ -11,13 +11,73 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = settings.SQLALCHEMY_TRACK_MODIFIC
 
 db.init_app(app)
 
+MIN_HOURS_AHEAD = 2  
+MAX_DAYS_AHEAD = 7
+
 @app.route("/")
 def home():
-  return "Food Listing Page"
+  return render_template("home.html")
 
-@app.route("/donate", methods=['POST', 'GET'])
+@app.route("/donate", methods=["GET", "POST"])
 def donate():
-  return "Donation Page"
+    if request.method == "POST":
+        restaurant_name = request.form.get("restaurant_name", "").strip()
+        food_name = request.form.get("food_name", "").strip()
+        quantity_raw = request.form.get("quantity", "").strip()
+        food_description = request.form.get("food_description", "").strip()
+        location = request.form.get("location", "").strip()
+        email = request.form.get("email", "").strip()
+        phone_number = request.form.get("phone_number", "").strip()
+        expires_at_raw = request.form.get("expires_at", "").strip()
+
+        # Minimal validation (keep it small)
+        if not all([restaurant_name, food_name, quantity_raw, location, email, phone_number, expires_at_raw]):
+            return "Missing required fields", 400
+
+        try:
+            quantity = int(quantity_raw)
+        except ValueError:
+            return "Quantity must be a number", 400
+
+        # HTML datetime-local returns "YYYY-MM-DDTHH:MM"
+        try:
+            expires_at = datetime.fromisoformat(expires_at_raw)
+        except ValueError:
+            return "Invalid expires_at format", 400
+        
+
+        now = datetime.now()
+
+        # Rule 1: not in the past
+        if expires_at <= now:
+            return "Expiration time cannot be in the past.", 400
+
+        # Rule 2: at least N hours ahead
+        if expires_at < now + timedelta(hours=MIN_HOURS_AHEAD):
+            return f"Expiration must be at least {MIN_HOURS_AHEAD} hours from now.", 400
+
+        
+        if expires_at > now + timedelta(days=MAX_DAYS_AHEAD):
+            return f"Expiration must be within {MAX_DAYS_AHEAD} days.", 400
+
+
+        offer = Offer(
+            restaurant_name=restaurant_name,
+            food_name=food_name,
+            quantity=quantity,
+            food_description=food_description or None,
+            location=location,
+            email=email,
+            phone_number=phone_number,
+            expires_at=expires_at,
+        )
+
+        db.session.add(offer)
+        db.session.commit()
+
+        return redirect(url_for("home"))
+
+    return render_template("donation_form.html")
 
 
 
