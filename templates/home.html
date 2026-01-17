@@ -1,1 +1,46 @@
 {% extends "base.html" %}
+
+{% block title %}Food Listings{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-semibold">Available Food Offers</h1>
+</div>
+
+{% if offers %}
+  <div class="space-y-4">
+    {% for offer in offers %}
+      <div class="bg-white border rounded-lg p-5 shadow-sm">
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <h2 class="text-lg font-semibold">
+              {{ offer.food_name }} <span class="text-gray-500 font-normal">({{ offer.quantity }})</span>
+            </h2>
+            <p class="text-sm text-gray-600 mt-1">
+              From <span class="font-medium text-gray-900">{{ offer.restaurant_name }}</span> · {{ offer.location }}
+            </p>
+
+            {% if offer.food_description %}
+              <p class="text-sm text-gray-700 mt-3">{{ offer.food_description }}</p>
+            {% endif %}
+
+            <p class="text-xs text-gray-500 mt-3">
+              Expires: {{ offer.expires_at.strftime("%Y-%m-%d %H:%M") }}
+            </p>
+          </div>
+
+          {% if offer.claimed %}
+            <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">Claimed</span>
+          {% else %}
+            <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Active</span>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="bg-white border rounded-lg p-6 shadow-sm">
+    <p class="text-gray-600">No offers yet. Click <span class="font-medium">+ Donate</span> to add one.</p>
+  </div>
+{% endif %}
+{% endblock %}
