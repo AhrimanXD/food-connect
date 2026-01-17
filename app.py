@@ -16,7 +16,9 @@ MAX_DAYS_AHEAD = 7
 
 @app.route("/")
 def home():
-  return render_template("home.html")
+    offers = Offer.query.order_by(Offer.created_at.desc()).all()
+    return render_template("home.html", offers=offers)
+
 
 @app.route("/donate", methods=["GET", "POST"])
 def donate():
