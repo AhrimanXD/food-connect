@@ -3,6 +3,10 @@
 {% block title %}Food Listings{% endblock %}
 
 {% block content %}
+{% if q %}
+  <p class="text-sm text-gray-600 mb-4">Showing results for: <span class="font-medium">{{ q }}</span></p>
+{% endif %}
+
 <div class="flex items-center justify-between mb-6">
   <h1 class="text-2xl font-semibold">Available Food Offers</h1>
 </div>
