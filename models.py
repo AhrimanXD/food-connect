@@ -12,6 +12,7 @@ class Offer(db.Model):
   food_description: Mapped[str] = mapped_column(Text, nullable=True)
   location: Mapped[str] = mapped_column(String(30), nullable = False)
   claimed: Mapped[bool] = mapped_column(Boolean, default= False)
+  active: Mapped[bool] = mapped_column(Boolean, default=True)
   email: Mapped[str] = mapped_column(String(100), nullable= False)
   phone_number: Mapped[str] = mapped_column(String, nullable= False)
   embedding: Mapped[list[float] | None] = mapped_column(JSON, nullable=True) 
