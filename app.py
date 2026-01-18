@@ -95,6 +95,14 @@ def donate():
 
     return render_template("donation_form.html")
 
+@app.post("/offers/<int:offer_id>/claim")
+def claim_offer(offer_id):
+    offer = Offer.query.get_or_404(offer_id)
+    offer.claimed = True
+    offer.active = False
+    db.session.commit()
+    return redirect(url_for("home"))
+
 
 
 if __name__ == '__main__':
