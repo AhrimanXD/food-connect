@@ -3,6 +3,7 @@ from config import settings
 from models import db, Offer
 from datetime import datetime, timedelta
 from utils import deactivate_expired_offers
+from ai import get_embedding, build_offer_text
 
 app = Flask(__name__)
 
@@ -75,6 +76,21 @@ def donate():
         
         if expires_at > now + timedelta(days=MAX_DAYS_AHEAD):
             return f"Expiration must be within {MAX_DAYS_AHEAD} days.", 400
+        offer_text = build_offer_text(
+            restaurant_name=restaurant_name,
+            food_name=food_name,
+            quantity=quantity,
+            description=food_description,
+            location=location,
+        )
+
+        try:
+            embedding = get_embedding(offer_text)
+        except Exception as e:
+            # For MVP: don't block donation if Ollama fails
+            print(f"Embedding generation failed: {e}")
+            embedding = None
+
 
 
         offer = Offer(
@@ -86,6 +102,7 @@ def donate():
             email=email,
             phone_number=phone_number,
             expires_at=expires_at,
+            embedding = embedding
         )
 
         db.session.add(offer)
