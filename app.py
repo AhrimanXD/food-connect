@@ -3,7 +3,7 @@ from config import settings
 from models import db, Offer
 from datetime import datetime, timedelta
 from utils import deactivate_expired_offers
-from ai import get_embedding, build_offer_text
+from ai import get_embedding, build_offer_text, semantic_rank_offers
 
 app = Flask(__name__)
 
@@ -22,16 +22,21 @@ def home():
 
     q = request.args.get("q", "").strip()
 
-    query = Offer.query.filter(Offer.active == True)
-    if q:
-        like = f"%{q}%"
-        query = query.filter(
-            (Offer.food_name.ilike(like)) |
-            (Offer.food_description.ilike(like)) |
-            (Offer.location.ilike(like)) |
-            (Offer.restaurant_name.ilike(like))
-        )
-    offers = query.order_by(Offer.created_at.desc()).all()
+    base_query = Offer.query.filter(Offer.active == True, Offer.claimed == False)
+    if not q:
+        offers = base_query.order_by(Offer.created_at.desc()).all()
+        return render_template("home.html", offers=offers, q=q)
+    
+    offers_with_embeddings = base_query.filter(Offer.embedding.is_not(None)).all()
+    ranked = semantic_rank_offers(
+        query=q,
+        offers=offers_with_embeddings,
+        top_k=5,
+        threshold=0.5
+    )
+    
+    # ranked is [(score_0, offer_0), (score_1, offer_1), ... , (score_n, offer_n)]
+    offers = [offer for score, offer in ranked]
     return render_template("home.html", offers=offers, q=q)
 
 
