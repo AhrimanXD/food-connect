@@ -3,8 +3,12 @@
 {% block title %}Food Listings{% endblock %}
 
 {% block content %}
+
 {% if q %}
-  <p class="text-sm text-gray-600 mb-4">Showing results for: <span class="font-medium">{{ q }}</span></p>
+  <p class="text-sm text-gray-600 mb-4">
+    Showing results for:
+    <span class="font-medium text-gray-900">{{ q }}</span>
+  </p>
 {% endif %}
 
 <div class="flex items-center justify-between mb-6">
@@ -15,17 +19,24 @@
   <div class="space-y-4">
     {% for offer in offers %}
       <div class="bg-white border rounded-lg p-5 shadow-sm">
-        <div class="flex items-start justify-between gap-4">
-          <div>
+        <div class="flex items-start justify-between gap-6">
+
+          <!-- LEFT: Offer details -->
+          <div class="flex-1">
             <h2 class="text-lg font-semibold">
-              {{ offer.food_name }} <span class="text-gray-500 font-normal">({{ offer.quantity }})</span>
+              {{ offer.food_name }}
+              <span class="text-gray-500 font-normal">({{ offer.quantity }})</span>
             </h2>
+
             <p class="text-sm text-gray-600 mt-1">
-              From <span class="font-medium text-gray-900">{{ offer.restaurant_name }}</span> · {{ offer.location }}
+              From <span class="font-medium text-gray-900">{{ offer.restaurant_name }}</span>
+              · {{ offer.location }}
             </p>
 
             {% if offer.food_description %}
-              <p class="text-sm text-gray-700 mt-3">{{ offer.food_description }}</p>
+              <p class="text-sm text-gray-700 mt-3">
+                {{ offer.food_description }}
+              </p>
             {% endif %}
 
             <p class="text-xs text-gray-500 mt-3">
@@ -33,45 +44,42 @@
             </p>
           </div>
 
-          {% if offer.claimed %}
-  <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
-    Claimed
-  </span>
-{% else %}
+          <!-- RIGHT: Status / Actions -->
+          <div class="flex flex-col items-end gap-2">
+            {% if offer.claimed %}
+              <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+                Claimed
+              </span>
+            {% else %}
+              <button
+                type="button"
+                class="text-sm rounded-md bg-gray-900 px-3 py-2 text-white hover:bg-gray-800 transition"
+                onclick="openClaimModal(
+                  '{{ offer.email }}',
+                  '{{ offer.phone_number }}',
+                  '{{ offer.restaurant_name|e }}',
+                  '{{ offer.food_name|e }}',
+                  '{{ offer.quantity }}',
+                  '{{ offer.location|e }}'
+                )"
+              >
+                Claim
+              </button>
 
-  {% set subject = "FoodConnect Claim Request: " ~ offer.food_name %}
-  {% set body = 
-  "Hello " ~ offer.restaurant_name ~ ",\n\n" ~
-  "I am reaching out via FoodConnect to request the following food donation:\n" ~
-  "- Food: " ~ offer.food_name ~ "\n" ~
-  "- Quantity: " ~ offer.quantity|string ~ "\n" ~
-  "- Location: " ~ offer.location ~ "\n\n" ~
-  "Please let me know the pickup time and any instructions.\n\n" ~
-  "Thank you."
-  %}
+              <form method="POST" action="/offers/{{ offer.id }}/claim">
+                <button
+                  type="submit"
+                  class="text-xs rounded-md border px-3 py-1 text-gray-700 hover:bg-gray-50 transition"
+                >
+                  Mark as Claimed
+                </button>
+              </form>
 
-
-  <div class="flex flex-col items-end gap-2">
-    <!-- Claim via email -->
-    <a
-      href="mailto:{{ offer.email }}?subject={{ subject|urlencode }}&body={{ body|urlencode }}"
-      class="text-sm rounded-md bg-gray-900 px-3 py-2 text-white hover:bg-gray-800 transition"
-    >
-      Claim (Email)
-    </a>
-
-    <!-- Mark as claimed -->
-    <form method="POST" action="/offers/{{ offer.id }}/claim">
-      <button
-        type="submit"
-        class="text-xs rounded-md border px-3 py-1 text-gray-700 hover:bg-gray-50 transition"
-      >
-        Mark as Claimed
-      </button>
-    </form>
-  </div>
-
-{% endif %}
+              <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">
+                Active
+              </span>
+            {% endif %}
+          </div>
 
         </div>
       </div>
@@ -79,7 +87,106 @@
   </div>
 {% else %}
   <div class="bg-white border rounded-lg p-6 shadow-sm">
-    <p class="text-gray-600">No offers yet. Click <span class="font-medium">+ Donate</span> to add one.</p>
+    <p class="text-gray-600">
+      No offers yet. Click <span class="font-medium">+ Donate</span> to add one.
+    </p>
   </div>
 {% endif %}
+
+<!-- CLAIM MODAL -->
+<div id="claimModal" class="fixed inset-0 hidden items-center justify-center bg-black/40 p-4 z-50">
+  <div class="w-full max-w-md rounded-lg bg-white p-5 shadow-lg">
+    <div class="flex items-start justify-between">
+      <h3 class="text-lg font-semibold">Claim Donation</h3>
+      <button
+        class="text-gray-500 hover:text-gray-900"
+        onclick="closeClaimModal()"
+      >
+        ✕
+      </button>
+    </div>
+
+    <p class="text-sm text-gray-600 mt-2" id="claimInfo"></p>
+
+    <div class="mt-5 flex flex-col gap-2">
+      <a
+        id="claimEmailBtn"
+        class="rounded-md bg-gray-900 px-4 py-2 text-sm font-medium text-white hover:bg-gray-800 transition"
+        href="#"
+      >
+        Email Restaurant
+      </a>
+
+      <button
+        id="copyPhoneBtn"
+        class="rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+        type="button"
+      >
+        Copy Phone Number
+      </button>
+
+      <a
+        id="callPhoneBtn"
+        class="rounded-md border px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition"
+        href="#"
+      >
+        Call Phone Number
+      </a>
+
+      <span id="copyStatus" class="text-xs text-gray-500"></span>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL SCRIPT -->
+<script>
+  function openClaimModal(email, phone, restaurantName, foodName, quantity, location) {
+    const modal = document.getElementById("claimModal");
+    modal.classList.remove("hidden");
+    modal.classList.add("flex");
+
+    document.getElementById("claimInfo").textContent =
+      `Restaurant: ${restaurantName} • ${foodName} (${quantity}) • ${location}`;
+
+    const subject = `FoodConnect Claim Request: ${foodName}`;
+    const body =
+`Hello ${restaurantName},
+
+I am reaching out via FoodConnect to request the following food donation:
+- Food: ${foodName}
+- Quantity: ${quantity}
+- Location: ${location}
+
+Please let me know the pickup time and any instructions.
+
+Thank you.`;
+
+    document.getElementById("claimEmailBtn").href =
+      `mailto:${email}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+    const status = document.getElementById("copyStatus");
+    document.getElementById("copyPhoneBtn").onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(phone);
+        status.textContent = `Copied: ${phone}`;
+        setTimeout(() => status.textContent = "", 2000);
+      } catch {
+        status.textContent = `Copy failed. Phone: ${phone}`;
+      }
+    };
+
+    document.getElementById("callPhoneBtn").href = `tel:${phone}`;
+  }
+
+  function closeClaimModal() {
+    const modal = document.getElementById("claimModal");
+    modal.classList.add("hidden");
+    modal.classList.remove("flex");
+  }
+
+  document.getElementById("claimModal").addEventListener("click", (e) => {
+    if (e.target.id === "claimModal") closeClaimModal();
+  });
+</script>
+
 {% endblock %}
