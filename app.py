@@ -16,8 +16,19 @@ MAX_DAYS_AHEAD = 7
 
 @app.route("/")
 def home():
-    offers = Offer.query.order_by(Offer.created_at.desc()).all()
-    return render_template("home.html", offers=offers)
+    q = request.args.get("q", "").strip()
+
+    query = Offer.query
+    if q:
+        like = f"%{q}%"
+        query = query.filter(
+            (Offer.food_name.ilike(like)) |
+            (Offer.food_description.ilike(like)) |
+            (Offer.location.ilike(like)) |
+            (Offer.restaurant_name.ilike(like))
+        )
+    offers = query.order_by(Offer.created_at.desc()).all()
+    return render_template("home.html", offers=offers, q=q)
 
 
 @app.route("/donate", methods=["GET", "POST"])
