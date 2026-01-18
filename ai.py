@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Any, Iterable
 
+import numpy as np
 import ollama
 
 EMBED_MODEL = 'mxbai-embed-large'
@@ -46,3 +48,34 @@ def build_offer_text(restaurant_name: str, food_name: str, quantity: int, descri
     if description:
         parts.append(f"description: {description}")
     return " | ".join(parts)
+
+
+def cosine_similarity(query_vec: list[float], db_vec: list[float]) -> float:
+  q = np.array(query_vec, dtype=np.float32)
+  d = np.array(db_vec, dtype=np.float32)
+
+  qn = np.linalg.norm(q)
+  dn = np.linalg.norm(d)
+
+  if qn == 0.0 or dn == 0.0:
+    return 0.0
+  
+  return float(np.dot(q, d) / (qn * dn))
+
+def semantic_rank_offers(
+    query: str,
+    offers: Iterable[Any],
+    top_k: int = 5,
+    threshold: float = 0.5
+) -> list[tuple[float, Any]]:
+  q_emb = get_embedding(query)
+
+  scored: list[tuple[float, Any]] = []
+  for offer in offers:
+    if not offer.embedding:
+      continue
+    score = cosine_similarity(q_emb, offer.embedding)
+    if score >= threshold:
+      scored.append((score, offer))
+  scored.sort(key = lambda x: x[0], reverse=True)
+  return scored[:top_k]
