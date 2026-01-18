@@ -34,10 +34,45 @@
           </div>
 
           {% if offer.claimed %}
-            <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">Claimed</span>
-          {% else %}
-            <span class="text-xs px-2 py-1 rounded-full bg-green-100 text-green-700">Active</span>
-          {% endif %}
+  <span class="text-xs px-2 py-1 rounded-full bg-gray-100 text-gray-700">
+    Claimed
+  </span>
+{% else %}
+
+  {% set subject = "FoodConnect Claim Request: " ~ offer.food_name %}
+  {% set body = 
+  "Hello " ~ offer.restaurant_name ~ ",\n\n" ~
+  "I am reaching out via FoodConnect to request the following food donation:\n" ~
+  "- Food: " ~ offer.food_name ~ "\n" ~
+  "- Quantity: " ~ offer.quantity|string ~ "\n" ~
+  "- Location: " ~ offer.location ~ "\n\n" ~
+  "Please let me know the pickup time and any instructions.\n\n" ~
+  "Thank you."
+  %}
+
+
+  <div class="flex flex-col items-end gap-2">
+    <!-- Claim via email -->
+    <a
+      href="mailto:{{ offer.email }}?subject={{ subject|urlencode }}&body={{ body|urlencode }}"
+      class="text-sm rounded-md bg-gray-900 px-3 py-2 text-white hover:bg-gray-800 transition"
+    >
+      Claim (Email)
+    </a>
+
+    <!-- Mark as claimed -->
+    <form method="POST" action="/offers/{{ offer.id }}/claim">
+      <button
+        type="submit"
+        class="text-xs rounded-md border px-3 py-1 text-gray-700 hover:bg-gray-50 transition"
+      >
+        Mark as Claimed
+      </button>
+    </form>
+  </div>
+
+{% endif %}
+
         </div>
       </div>
     {% endfor %}
