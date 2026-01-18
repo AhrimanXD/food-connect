@@ -25,8 +25,8 @@ def get_embedding(text: str) -> list[float]:
   
   try:
     # resp = ollama.embeddings(model=EMBED_MODEL, prompt=text) deprecated in favour of embed
-    resp = ollama.embeddings(model=EMBED_MODEL, prompt=text)
-    emb = resp.get("embedding")
+    resp = ollama.embed(model=EMBED_MODEL, input=text)
+    emb = resp.get("embeddings")
     if not emb:
       raise RuntimeError("No embedding returned from Ollama.")
     return emb
