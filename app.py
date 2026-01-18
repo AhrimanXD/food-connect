@@ -2,6 +2,7 @@ from flask import Flask, render_template, request, redirect, url_for
 from config import settings
 from models import db, Offer
 from datetime import datetime, timedelta
+from utils import deactivate_expired_offers
 
 app = Flask(__name__)
 
@@ -16,9 +17,11 @@ MAX_DAYS_AHEAD = 7
 
 @app.route("/")
 def home():
+    deactivate_expired_offers()
+
     q = request.args.get("q", "").strip()
 
-    query = Offer.query
+    query = Offer.query.filter(Offer.active == True)
     if q:
         like = f"%{q}%"
         query = query.filter(
